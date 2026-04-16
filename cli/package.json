@@ -1,0 +1,35 @@
+{
+  "name": "awesome-agv",
+  "version": "1.0.0",
+  "description": "1-click installer for Awesome AGV — a rugged, high-quality configuration suite for AI Agents.",
+  "bin": {
+    "awesome-agv": "./bin/awesome-agv.js"
+  },
+  "files": [
+    "bin/"
+  ],
+  "keywords": [
+    "ai",
+    "agent",
+    "coding-assistant",
+    "configuration",
+    "rules",
+    "skills",
+    "workflows",
+    "awesome-agv",
+    "cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/irahardianto/awesome-agv.git"
+  },
+  "homepage": "https://github.com/irahardianto/awesome-agv",
+  "bugs": {
+    "url": "https://github.com/irahardianto/awesome-agv/issues"
+  },
+  "license": "MIT",
+  "author": "irahardianto",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

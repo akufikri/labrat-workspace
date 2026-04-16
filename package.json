@@ -1,0 +1,85 @@
+{
+  "name": "labrats",
+  "version": "1.0.0",
+  "description": "Labrat Workspace - Agent Orchestration Environment",
+  "main": "dist-electron/main.js",
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "concurrently -n \"VITE,ELECTRON\" -c \"blue,green\" \"npm run dev:vite\" \"npm run dev:electron\"",
+    "postinstall": "electron-builder install-app-deps",
+    "dev:vite": "vite",
+    "dev:electron": "wait-on http://localhost:5173 && tsc -p tsconfig.electron.json && electron .",
+    "build": "tsc -p tsconfig.electron.json && vite build && electron-builder",
+    "compile-electron": "tsc -p tsconfig.electron.json"
+  },
+  "keywords": [],
+  "dependencies": {
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "better-sqlite3": "^12.9.0",
+    "lucide-react": "^1.8.0",
+    "node-pty": "^1.1.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.0.3",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
+    "electron": "^41.2.0",
+    "electron-builder": "^26.8.1",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.8",
+    "wait-on": "^9.0.5"
+  },
+  "build": {
+    "appId": "com.labrat.agentos",
+    "productName": "Labrat Workspace",
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "public/icon.icns",
+      "hardenedRuntime": true,
+      "entitlements": "electron_build/entitlements.mac.plist",
+      "entitlementsInherit": "electron_build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSCameraUsageDescription": "This app requires camera access.",
+        "NSMicrophoneUsageDescription": "This app requires microphone access.",
+        "NSDesktopFolderUsageDescription": "This app requires access to your Desktop folder.",
+        "NSDocumentsFolderUsageDescription": "This app requires access to your Documents folder.",
+        "NSDownloadsFolderUsageDescription": "This app requires access to your Downloads folder."
+      }
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "public/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Development"
+    },
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/node-pty/**/*",
+      "node_modules/better-sqlite3/**/*"
+    ]
+  }
+}

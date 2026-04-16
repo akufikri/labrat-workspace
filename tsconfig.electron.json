@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "outDir": "dist-electron",
+    "rootDir": "electron",
+    "lib": ["ESNext"],
+    "skipLibCheck": true,
+    "noEmit": false
+  },
+  "include": ["electron/**/*"]
+}
