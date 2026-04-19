@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.on(`pty-exit-${id}`, listener);
       return () => ipcRenderer.removeListener(`pty-exit-${id}`, listener);
     },
+    getBuffer: (id: string) => ipcRenderer.invoke('pty-get-buffer', id),
   },
   setup: {
     checkCli: (command: string) => ipcRenderer.invoke('check-cli', command),
@@ -47,4 +48,9 @@ contextBridge.exposeInMainWorld('electron', {
     write: (text: string) => ipcRenderer.invoke('clipboard-write', text),
   },
   broadcast: (sessionIds: string[], data: string) => ipcRenderer.send('pty-broadcast', { sessionIds, data }),
+  glass: {
+    isSupported: () => ipcRenderer.invoke('glass:isSupported'),
+    enable: () => ipcRenderer.invoke('glass:enable'),
+    disable: () => ipcRenderer.invoke('glass:disable'),
+  },
 });

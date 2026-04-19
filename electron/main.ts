@@ -8,6 +8,25 @@ import { dbService } from './db';
 let mainWindow: BrowserWindow | null = null;
 const ptyProcesses: Map<string, pty.IPty> = new Map();
 
+// Circular output buffer per session — replayed when xterm remounts (workspace switch)
+const PTY_BUFFER_MAX = 500; // max chunks per session
+const ptyDataBuffers: Map<string, string[]> = new Map();
+
+// electron-liquid-glass: native macOS glass effect (requires macOS 26+ / Darwin 25+)
+let liquidGlass: any = null;
+let glassViewHandle: any = null;
+try {
+  liquidGlass = require('electron-liquid-glass');
+} catch (_) {}
+
+function isGlassSupported(): boolean {
+  return (
+    process.platform === 'darwin' &&
+    parseInt(os.release().split('.')[0], 10) >= 25 &&
+    liquidGlass !== null
+  );
+}
+
 // Fix PATH on macOS when launched from Dock (process.env.PATH is minimal)
 if (process.platform === 'darwin' || process.platform === 'linux') {
   try {
@@ -27,7 +46,9 @@ function createWindow() {
     height: 860,
     minWidth: 800,
     minHeight: 600,
-    backgroundColor: '#0a0a0c',
+    // On macOS, use transparent window so native liquid glass can render behind web content
+    transparent: process.platform === 'darwin',
+    backgroundColor: process.platform === 'darwin' ? '#00000000' : '#0a0a0c',
     icon: isDev ? devIconPath : undefined,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
@@ -83,6 +104,9 @@ app.on('activate', () => {
 
 // PTY IPC handlers
 ipcMain.handle('pty-spawn', (event, { id, command, args, cwd }) => {
+  // Guard: don't double-spawn if process already running (e.g. after workspace switch remount)
+  if (ptyProcesses.has(id)) return true;
+
   const shell = process.env.SHELL || (os.platform() === 'win32' ? 'powershell.exe' : '/bin/zsh');
   
   const ptyProcess = pty.spawn(shell, [], {
@@ -103,6 +127,12 @@ ipcMain.handle('pty-spawn', (event, { id, command, args, cwd }) => {
   }
 
   ptyProcess.onData((data) => {
+    // Push to circular buffer for replay when xterm remounts
+    const buf = ptyDataBuffers.get(id) || [];
+    buf.push(data);
+    if (buf.length > PTY_BUFFER_MAX) buf.shift();
+    ptyDataBuffers.set(id, buf);
+
     if (mainWindow) {
       mainWindow.webContents.send(`pty-data-${id}`, data);
     }
@@ -137,7 +167,13 @@ ipcMain.on('pty-kill', (event, id) => {
   if (ptyProcess) {
     ptyProcess.kill();
     ptyProcesses.delete(id);
+    ptyDataBuffers.delete(id);
   }
+});
+
+// Return buffered output for a session (for xterm replay on remount)
+ipcMain.handle('pty-get-buffer', (_, id: string) => {
+  return (ptyDataBuffers.get(id) || []).join('');
 });
 
 // Setup IPC handlers
@@ -240,6 +276,39 @@ ipcMain.handle('db-get-plugins', () => dbService.getInstalledPlugins());
 ipcMain.handle('db-set-setting', (_, { key, value }) => dbService.setSetting(key, value));
 ipcMain.handle('db-get-setting', (_, key) => dbService.getSetting(key));
 ipcMain.handle('db-clear-all', () => dbService.clearData());
+
+// Glass IPC handlers
+ipcMain.handle('glass:isSupported', () => isGlassSupported());
+
+ipcMain.handle('glass:enable', () => {
+  if (!mainWindow || !isGlassSupported()) return false;
+  try {
+    // Remove existing view first to avoid duplicates
+    if (glassViewHandle !== null) {
+      liquidGlass.removeView(glassViewHandle);
+      glassViewHandle = null;
+    }
+    glassViewHandle = liquidGlass.addView(mainWindow.getNativeWindowHandle(), {
+      cornerRadius: 12,
+      tintColor: { r: 0.05, g: 0.02, b: 0.1, a: 0.5 },
+      opaque: false,
+    });
+    return true;
+  } catch (e) {
+    console.error('Failed to enable liquid glass:', e);
+    return false;
+  }
+});
+
+ipcMain.handle('glass:disable', () => {
+  if (glassViewHandle !== null && liquidGlass) {
+    try {
+      liquidGlass.removeView(glassViewHandle);
+    } catch (_) {}
+    glassViewHandle = null;
+  }
+  return true;
+});
 
 // System stats handler
 ipcMain.handle('get-system-stats', () => {

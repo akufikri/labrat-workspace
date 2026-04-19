@@ -1,3 +1,43 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #8b5cf6;
+  --color-secondary: #3b82f6;
+  --color-base: #0a0a0c;
+  --color-muted: #64748b;
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+  --font-family-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* V2 Glassmorphism utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-header {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.terminal-glow {
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.3), 0 0 24px rgba(139, 92, 246, 0.08);
+}
+
+.status-active {
+  box-shadow: 0 0 8px #22c55e;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
 :root {
   --bg-primary: #0a0a0c;
   --bg-secondary: #141417;
@@ -24,11 +64,36 @@
 }
 
 [data-theme='glass'] {
-  --bg-primary: transparent;
-  --bg-secondary: rgba(20, 20, 23, 0.4);
-  --bg-sidebar: rgba(15, 15, 17, 0.4);
-  --terminal-bg: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(10px);
+  --bg-primary: #0d0b14;
+  --bg-secondary: #13102a;
+  --bg-sidebar: #0f0d1f;
+  --border-color: rgba(139, 92, 246, 0.18);
+  --text-primary: #ede9fe;
+  --text-secondary: #a78bfa;
+  --accent-purple: #a78bfa;
+  --accent-blue: #60a5fa;
+  --terminal-bg: #050408;
+}
+
+/* Native liquid glass active (macOS 26+): make surfaces transparent so NSGlassEffectView shows through */
+[data-theme='glass'][data-native-glass='true'] {
+  --bg-primary: rgba(13, 11, 20, 0.15);
+  --bg-secondary: rgba(19, 16, 42, 0.2);
+  --bg-sidebar: rgba(15, 13, 31, 0.15);
+  --border-color: rgba(139, 92, 246, 0.25);
+  --terminal-bg: rgba(5, 4, 8, 0.6);
+}
+
+[data-theme='glass'][data-native-glass='true'] .glass-panel,
+[data-theme='glass'][data-native-glass='true'] .glass-header {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+[data-theme='glass'][data-native-glass='true'] body,
+[data-theme='glass'][data-native-glass='true'] html,
+[data-theme='glass'][data-native-glass='true'] #root {
+  background-color: transparent;
 }
 
 * {

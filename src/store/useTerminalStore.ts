@@ -40,7 +40,7 @@ interface LabRatStore {
   addSessionToWorkspace: (workspaceId: string, name: string, command?: string) => void;
   removeSession: (workspaceId: string, sessionId: string) => void;
   updateSessionStatus: (sessionId: string, status: TerminalSession['status']) => void;
-  setTheme: (theme: 'dark' | 'light' | 'glass') => void;
+  setTheme: (theme: 'dark' | 'light' | 'glass') => Promise<void>;
 }
 
 export const useLabRatStore = create<LabRatStore>((set, get) => ({
@@ -56,6 +56,19 @@ export const useLabRatStore = create<LabRatStore>((set, get) => ({
       const sessionsArr = await (window as any).electron.db.getSessions();
       const setupDone = await (window as any).electron.db.getSetting('setupCompleted');
       const savedTheme = await (window as any).electron.db.getSetting('theme');
+
+      // Always restore theme, even if no workspaces exist
+      const theme: 'dark' | 'light' | 'glass' = (['dark', 'light', 'glass'].includes(savedTheme) ? savedTheme : 'dark') as any;
+
+      // Re-apply native glass if it was the saved theme
+      if (theme === 'glass' && typeof window !== 'undefined' && window.electron?.glass) {
+        window.electron.glass.isSupported().then((supported) => {
+          if (supported) {
+            window.electron.glass.enable();
+            document.documentElement.setAttribute('data-native-glass', 'true');
+          }
+        }).catch(() => {});
+      }
 
       if (workspacesArr.length > 0) {
         const workspaceMap: Workspace[] = workspacesArr.map((ws: any) => ({
@@ -73,8 +86,11 @@ export const useLabRatStore = create<LabRatStore>((set, get) => ({
           sessions: sessionObj,
           activeWorkspaceId: workspaceMap[0].id,
           setupCompleted: setupDone === 'true',
-          theme: (savedTheme as any) || 'dark'
+          theme,
         });
+      } else {
+        // No workspaces yet (first setup), still apply saved theme
+        set({ theme });
       }
     } catch (e) {
       console.error('Failed to load from DB', e);
@@ -221,8 +237,24 @@ export const useLabRatStore = create<LabRatStore>((set, get) => ({
     }));
   },
 
-  setTheme: (theme) => {
+  setTheme: async (theme) => {
     set({ theme });
     get().saveToDb();
+
+    // Trigger native liquid glass on/off via IPC
+    if (typeof window !== 'undefined' && window.electron?.glass) {
+      if (theme === 'glass') {
+        const supported = await window.electron.glass.isSupported();
+        if (supported) {
+          await window.electron.glass.enable();
+          document.documentElement.setAttribute('data-native-glass', 'true');
+        } else {
+          document.documentElement.removeAttribute('data-native-glass');
+        }
+      } else {
+        await window.electron.glass.disable();
+        document.documentElement.removeAttribute('data-native-glass');
+      }
+    }
   }
 }));

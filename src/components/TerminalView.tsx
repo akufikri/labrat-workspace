@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { useLabRatStore } from '../store/useTerminalStore';
@@ -12,6 +12,7 @@ interface TerminalViewProps {
 const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, cwd }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
   const session = useLabRatStore((state) => state.sessions[sessionId]);
 
   useEffect(() => {
@@ -19,26 +20,41 @@ const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, cwd }) => {
 
     const term = new Terminal({
       theme: {
-        background: '#000000',
+        background: '#050505',
         foreground: '#f8fafc',
         cursor: '#8b5cf6',
         selectionBackground: 'rgba(139, 92, 246, 0.3)',
       },
       fontFamily: '"JetBrains Mono", "Fira Code", monospace',
       fontSize: 12,
+      lineHeight: 1.4,
       allowProposedApi: true,
+      scrollback: 500,
     });
 
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
+    fitAddonRef.current = fitAddon;
 
     term.open(terminalRef.current);
-    fitAddon.fit();
+
+    // Delay initial fit to let DOM settle
+    const initialFit = setTimeout(() => {
+      try { fitAddon.fit(); } catch {}
+    }, 50);
 
     xtermRef.current = term;
 
-    // Start PTY session
-    window.electron.pty.spawn({ id: sessionId, command: session?.command, cwd });
+    // Check if PTY is already running (remount after workspace switch) or needs spawning
+    window.electron.pty.getBuffer(sessionId).then((buffered) => {
+      if (buffered) {
+        // PTY already running — replay buffered output then attach live listener
+        term.write(buffered);
+      } else {
+        // Fresh spawn
+        window.electron.pty.spawn({ id: sessionId, command: session?.command, cwd });
+      }
+    });
 
     const removeDataListener = window.electron.pty.onData(sessionId, (data) => {
       term.write(data);
@@ -56,21 +72,40 @@ const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, cwd }) => {
       window.electron.pty.resize(sessionId, cols, rows);
     });
 
-    const handleResize = () => {
-      fitAddon.fit();
-    };
-    window.addEventListener('resize', handleResize);
+    // ResizeObserver handles both container and window resize — no separate window listener needed
+    let rafId: number;
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        try { fitAddon.fit(); } catch {}
+      });
+    });
+    ro.observe(terminalRef.current);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      clearTimeout(initialFit);
+      cancelAnimationFrame(rafId);
+      ro.disconnect();
       removeDataListener();
       removeExitListener();
       term.dispose();
       xtermRef.current = null;
+      fitAddonRef.current = null;
     };
   }, [sessionId]);
 
-  return <div ref={terminalRef} style={{ width: '100%', height: '100%', padding: '0.5rem' }} />;
+  return (
+    <div
+      ref={terminalRef}
+      style={{
+        width: '100%',
+        height: '100%',
+        padding: '4px 6px',
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+      }}
+    />
+  );
 };
 
-export default TerminalView;
+export default memo(TerminalView);

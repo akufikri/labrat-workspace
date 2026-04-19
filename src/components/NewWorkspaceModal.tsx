@@ -16,12 +16,10 @@ interface WorkspaceTemplate {
 }
 
 const WORKSPACE_TEMPLATES: WorkspaceTemplate[] = [
-  { id: 'solo-claude',    name: 'Solo Claude',     count: 1, agents: ['claude'],                             description: '1 × Claude Code' },
-  { id: 'dual-claude',    name: 'Dual Claude',      count: 2, agents: ['claude', 'claude'],                  description: '2 × Claude Code' },
-  { id: 'claude-gemini',  name: 'Claude + Gemini',  count: 2, agents: ['claude', 'gemini'],                  description: 'Claude + Gemini CLI' },
-  { id: 'multi-agent',    name: 'Multi-Agent',      count: 3, agents: ['claude', 'opencode', 'gemini'],      description: 'Claude + OpenCode + Gemini' },
-  { id: 'full-squad',     name: 'Full Squad',       count: 4, agents: ['claude', 'claude', 'gemini', 'aider'], description: '2× Claude + Gemini + Aider' },
-  { id: 'all-agents',     name: 'All Agents',       count: 5, agents: ['claude', 'opencode', 'gemini', 'aider', 'qwen'], description: 'One of each' },
+  { id: 'solo',     name: 'Solo Agent',     count: 1, agents: ['claude'],                                    description: '1 focused agent terminal' },
+  { id: 'dual',     name: 'Dual Agent',     count: 2, agents: ['claude', 'claude'],                          description: '2 parallel agent terminals' },
+  { id: 'triple',   name: 'Triple Agent',   count: 3, agents: ['claude', 'claude', 'claude'],                description: '3 concurrent agent terminals' },
+  { id: 'multiple', name: 'Multiple Agent', count: 4, agents: ['claude', 'claude', 'claude', 'claude'],      description: '4 agent terminals, max coverage' },
 ];
 
 const IconMap: Record<string, React.ReactNode> = {
@@ -53,7 +51,7 @@ interface Props {
 }
 
 const NewWorkspaceModal: React.FC<Props> = ({ workspaceCount, defaultFolder, onConfirm, onClose }) => {
-  const [activeTemplate, setActiveTemplate] = useState<string | null>('solo-claude');
+  const [activeTemplate, setActiveTemplate] = useState<string | null>('solo');
   const [slots, setSlots] = useState<TerminalSlot[]>(makeSlots(['claude']));
   const wsName = `workspace${workspaceCount + 1}`;
 
